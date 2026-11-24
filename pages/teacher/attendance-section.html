@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Boxicons CSS -->
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+    <title>EAST-Y CHECK</title>
+    <style>
+        @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@200;300;400;500;600;700&display=swap");
+    </style>
+    <link href="../../assets/css/dashboard.css" rel="stylesheet" />
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../../assets/css/styles.css">
+    <!-- Another Custom CSS-->
+    <link rel="stylesheet" href="../../assets/css/basta.css">
+</head>
+
+<body>
+    <!-- navbar -->
+    <nav class="navbar" aria-label="Main Navigation">
+        <div class="logo_item">
+            <i class="bx bx-menu" id="sidebarOpen"></i>
+            <strong>RedTrack</strong>
+        </div>
+
+        <div class="navbar_content">
+            <i class="bi bi-grid"></i>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <nav class="sidebar" aria-label="Sidebar Navigation">
+        <div class="menu_content">
+            <ul class="menu_items">
+                <div class="menu_title menu_editor"></div>
+                <li class="item active">
+                    <a href="classes-selection.html" class="nav_link">
+                        <span class="navlink_icon">
+                            <i class="bx bx-list-ul"></i>
+                        </span>
+                        <span class="navlink">Classes</span>
+                    </a>
+                </li>
+            </ul>
+
+            <ul class="menu_items">
+                <div class="menu_title menu_setting"></div>
+                <li class="item">
+                    <a href="../../index.html" class="nav_link" id="logoutButton">
+                        <span class="navlink_icon">
+                            <i class="bx bx-log-out"></i>
+                        </span>
+                        <span class="navlink">Logout</span>
+                    </a>
+                </li>
+            </ul>
+
+            <!-- Sidebar Open / Close -->
+            <div class="bottom_content">
+                <div class="bottom expand_sidebar">
+                    <span> Expand</span>
+                    <i class='bx bx-collapse-horizontal'></i>
+                </div>
+                <div class="bottom collapse_sidebar">
+                    <span> Collapse</span>
+                    <i class='bx bx-collapse-horizontal'></i>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Class Details -->
+    <div class="container mt-4">
+        <div class="card w-100">
+            <div class="card-header" style="background-color: #60100B; color: white;">
+                <h3 id="classTitle" class="mb-0">Class Details</h3>
+            </div>
+            <div class="card-body">
+                <div class="class-details">
+                    <p><strong>Room:</strong> <span id="classRoom"></span></p>
+                    <p><strong>Date: </strong><span id="date"></span></p>
+                    <p><strong>Class Time: </strong><input type="time" id="startTimeInput" readonly> - <input type="time"
+                            id="endTimeInput" readonly></p>
+                    <p>‎</p>
+                </div>
+                <div class="qr-container">
+                    <div id="qrcode" class="qr-code"></div>
+                </div>
+                <div class="form-inline mt-3">
+                    <label for="studentSelect" class="mr-2">Secretary Access:</label>
+                    <select id="studentSelect" class="form-control mr-2">
+                        <option value="">Select Student</option>
+                    </select>
+                    <button class="btn btn-success mr-2" onclick="grantAccess()">Grant</button>
+                    <button class="btn btn-danger" onclick="revokeAccess()">Revoke</button>
+                </div>
+
+                <div id="secretaryList" class="mt-2">
+                    <strong>Current Secretary:</strong> <span class="text-muted">None assigned</span>
+                </div>
+                <small id="message" class="text-muted"></small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Table -->
+    <div class="container mt-4">
+        <div class="card w-100">
+            <div class="card-header" style="background-color: #60100B; color: white;">
+                <h3 class="mb-0">Class List</h3>
+            </div>
+            <div class="card-body">
+                <table id="attendanceTable" class="table table-bordered table-striped">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Name</th>
+                            <th>Course</th>
+                            <th>Status</th>
+                            <th>Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentTable"></tbody>
+                </table>
+                <!-- Reset and Export Button -->
+                <button class="btn btn-danger" id="resetButton">Reset</button>
+                <button class="btn" style="background-color: #60100B; color: white;" id="exportBtn">Export</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const body = document.querySelector("body");
+        const darkLight = document.querySelector("#darkLight");
+        const sidebar = document.querySelector(".sidebar");
+        const submenuItems = document.querySelectorAll(".submenu_item");
+        const sidebarOpen = document.querySelector("#sidebarOpen");
+        const sidebarClose = document.querySelector(".collapse_sidebar");
+        const sidebarExpand = document.querySelector(".expand_sidebar");
+        sidebarOpen.addEventListener("click", () => sidebar.classList.toggle("close"));
+        sidebarClose.addEventListener("click", () => {
+            sidebar.classList.add("close", "hoverable");
+        });
+        sidebarExpand.addEventListener("click", () => {
+            sidebar.classList.remove("close", "hoverable");
+        });
+        sidebar.addEventListener("mouseenter", () => {
+            if (sidebar.classList.contains("hoverable")) {
+                sidebar.classList.remove("close");
+            }
+        });
+        sidebar.addEventListener("mouseleave", () => {
+            if (sidebar.classList.contains("hoverable")) {
+                sidebar.classList.add("close");
+            }
+        });
+
+        submenuItems.forEach((item, index) => {
+            item.addEventListener("click", () => {
+                item.classList.toggle("show_submenu");
+                submenuItems.forEach((item2, index2) => {
+                    if (index !== index2) {
+                        item2.classList.remove("show_submenu");
+                    }
+                });
+            });
+        });
+        if (window.innerWidth < 768) {
+            sidebar.classList.add("close");
+        } else {
+            sidebar.classList.remove("close");
+        }
+    </script>
+
+    <!-- Firebase Script -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
+        import { getDatabase, ref, set, remove, get, onChildAdded, onChildChanged, update } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA0hTRuEgjrP9YQ4LwkHcSUf7xkdl9lBgI",
+            authDomain: "attendify12-ai.firebaseapp.com",
+            databaseURL: "https://attendify12-ai-default-rtdb.asia-southeast1.firebasedatabase.app/",
+            projectId: "attendify12-ai",
+            storageBucket: "attendify12-ai.firebasestorage.app",
+            messagingSenderId: "374044642888",
+            appId: "1:374044642888:web:44706986d500af43a0927d"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const classId = urlParams.get("classId");
+        const teacherId = urlParams.get("teacherId");
+
+        const classPath = `classes/${teacherId}/${classId}/students`;
+
+        let studentsData = [];
+        let classTime;
+
+        function renderSecretaryUI(students) {
+            const select = document.getElementById("studentSelect");
+            const secretaryList = document.getElementById("secretaryList");
+            if (!select || !secretaryList) return;
+
+            const currentSelection = select.value;
+            select.innerHTML = '<option value="">Select Student</option>';
+
+            const secretaries = [];
+
+            students.forEach((student) => {
+                if (student && student.id && student.name) {
+                    const isSecretary = student.canAccessAttendance === true;
+
+                    const option = document.createElement("option");
+                    option.value = student.id;
+                    option.textContent = isSecretary
+                        ? `${student.name} (${student.id}) — Secretary`
+                        : `${student.name} (${student.id})`;
+                    select.appendChild(option);
+
+                    if (isSecretary) {
+                        secretaries.push(`${student.name} (${student.id})`);
+                    }
+                }
+            });
+
+            select.value = currentSelection;
+
+            secretaryList.innerHTML = secretaries.length > 0
+                ? `<strong>Current Secretary:</strong> <span class="text-success">${secretaries.join(", ")}</span>`
+                : `<strong>Current Secretary:</strong> <span class="text-muted">None assigned</span>`;
+        }
+
+        if (!teacherId || !classId) {
+            alert("Missing teacher or class ID!");
+            console.error("No info found: teacherId or classId is missing.");
+        } else {
+            fetchClassDetails();
+        }
+
+        async function fetchClassDetails() {
+            if (!classId) {
+                alert("No class selected!");
+                return;
+            }
+
+            try {
+                console.log("Fetching class details...");
+                const classRef = ref(db, `classes/${teacherId}/${classId}`);
+                const snapshot = await get(classRef);
+
+                if (snapshot.exists()) {
+                    const classData = snapshot.val();
+                    console.log("Class Data:", classData);
+
+                    function convertTo12HourFormat(time) {
+                        let [hour, minute] = time.split(":").map(Number);
+                        let period = hour >= 12 ? "PM" : "AM";
+                        hour = hour % 12 || 12;
+                        return `${hour}:${minute.toString().padStart(2, "0")} ${period}`;
+                    }
+
+                    document.getElementById("classTitle").innerText = `Class: ${classData.course}`;
+                    document.getElementById("classRoom").innerText = classData.room;
+                    document.getElementById("date").textContent = new Date().toLocaleDateString('en-US', {
+                        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                    });
+
+                    classTime = `${convertTo12HourFormat(classData.startTime)} - ${convertTo12HourFormat(classData.endTime)}`;
+                    document.getElementById("startTimeInput").value = classData.startTime;
+                    document.getElementById("endTimeInput").value = classData.endTime;
+                    console.log(`Class Time: ${classTime}`);
+
+                    const tbody = document.getElementById("studentTable");
+                    tbody.innerHTML = "";
+
+                    studentsData = classData.students ? Object.values(classData.students) : [];
+                    console.log("Students Data:", studentsData);
+                    renderSecretaryUI(studentsData);
+
+                    const attendanceRef = ref(db, `attendance/${classId}`);
+                    const attendanceSnapshot = await get(attendanceRef);
+
+                    let attendanceData = {};
+                    if (attendanceSnapshot.exists()) {
+                        attendanceData = attendanceSnapshot.val();
+                        console.log("Fetched Attendance Data:", attendanceData);
+                    }
+
+                    studentsData.forEach((student) => {
+                        console.log(`Adding student: ${student.name}`);
+
+                        if (!document.querySelector(`tr[data-id="${student.id}"]`)) {
+                            const row = `<tr data-id="${student.id}">
+                                <td>${student.id}</td>
+                                <td>${student.name}</td>
+                                <td>${student.course}</td>
+                                <td id="status-${student.id}">-</td> 
+                                <td id="timestamp-${student.id}">-</td>
+                            </tr>`;
+                            tbody.innerHTML += row;
+                        }
+
+                        const statusCell = document.querySelector(`#status-${student.id}`);
+                        const timestampCell = document.querySelector(`#timestamp-${student.id}`);
+
+                        if (attendanceData[student.id]) {
+                            const studentAttendance = attendanceData[student.id];
+
+                            if (studentAttendance.status !== "-") {
+                                statusCell.textContent = studentAttendance.status;
+
+                                switch (studentAttendance.status) {
+                                    case "Absent":
+                                        statusCell.style.color = "red";
+                                        break;
+                                    case "Present":
+                                        statusCell.style.color = "green";
+                                        break;
+                                    case "Late":
+                                        statusCell.style.color = "orange";
+                                        break;
+                                    case "Cutting":
+                                        statusCell.style.color = "blue";
+                                        break;
+                                    default:
+                                        statusCell.style.color = "black";
+                                }
+
+                                if (studentAttendance.timestamp) {
+                                    const localTimestamp = new Date(studentAttendance.timestamp).toLocaleString('en-US', {
+                                        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+                                    });
+                                    timestampCell.textContent = localTimestamp;
+                                }
+                            }
+                        }
+                    });
+
+                    listenForLoginChanges();
+                    listenForAttendanceChanges();
+                } else {
+                    alert("Class not found!");
+                }
+            } catch (error) {
+                console.error("Error fetching class data:", error);
+            }
+        }
+
+        function listenForAttendanceChanges() {
+            console.log("Listening for attendance changes...");
+            const attendanceRef = ref(db, `attendance/${classId}`);
+
+            onChildChanged(attendanceRef, (snapshot) => {
+                const attendanceData = snapshot.val();
+                console.log("Attendance data changed:", attendanceData);
+
+                const studentId = attendanceData.id;
+                const status = attendanceData.status;
+
+                const statusCell = document.querySelector(`#status-${studentId}`);
+
+                if (statusCell) {
+                    statusCell.innerText = status;
+
+                    switch (status) {
+                        case "Absent":
+                            statusCell.style.color = "red";
+                            break;
+                        case "Present":
+                            statusCell.style.color = "green";
+                            break;
+                        case "Late":
+                            statusCell.style.color = "orange";
+                            break;
+                        case "Cutting":
+                            statusCell.style.color = "blue";
+                            break;
+                        default:
+                            statusCell.style.color = "-";
+                            break;
+                    }
+
+                    const timestampCell = statusCell.nextElementSibling;
+                    if (timestampCell) {
+                        timestampCell.innerText = new Date(attendanceData.timestamp).toLocaleString();
+                    }
+                } else {
+                    const tbody = document.getElementById("studentTable");
+                    const newRow = `<tr data-id="${studentId}">
+                        <td>${attendanceData.id}</td>
+                        <td>${attendanceData.name}</td>
+                        <td>${attendanceData.course}</td>
+                        <td id="status-${studentId}">${status}</td>
+                        <td>${new Date(attendanceData.timestamp).toLocaleString()}</td>
+                    </tr>`;
+                    tbody.innerHTML += newRow;
+                }
+            });
+        }
+
+        async function markAbsentAfterEndTime() {
+            console.log("Checking for absent students after class ends...");
+
+            if (!classId) return;
+
+            const classRef = ref(db, `classes/${teacherId}/${classId}`);
+            const classSnapshot = await get(classRef);
+
+            if (classSnapshot.exists()) {
+                const classData = classSnapshot.val();
+                const startTime = classData.startTime;
+                const endTime = classData.endTime;
+
+                const today = new Date().toDateString();
+                const classStartDateTime = new Date(`${today} ${startTime}:00`);
+                const classEndDateTime = new Date(`${today} ${endTime}:00`);
+                const currentTime = new Date();
+
+                if (currentTime > classEndDateTime) {
+                    console.log("Class has ended. Marking absent students...");
+
+                    const attendanceRef = ref(db, `attendance/${classId}`);
+                    const attendanceSnapshot = await get(attendanceRef);
+
+                    if (attendanceSnapshot.exists()) {
+                        const attendanceData = attendanceSnapshot.val();
+
+                        for (const studentId in attendanceData) {
+                            let studentStatus = attendanceData[studentId].status;
+
+                            if (studentStatus === "-") {
+                                console.log(`Marking ${studentId} as Absent`);
+
+                                update(ref(db, `attendance/${classId}/${studentId}`), {
+                                    status: "Absent",
+                                    timestamp: new Date().toISOString()
+                                });
+                            }
+                        }
+                    }
+                } else if (currentTime < classStartDateTime) {
+                    console.log("Class hasn't started yet. No changes made.");
+                } else {
+                    console.log("Class is still ongoing. No changes made.");
+                }
+            } else {
+                console.log("Class not found.");
+            }
+        }
+
+        function listenForLoginChanges() {
+            console.log("Listening for login changes...");
+            const loginsRef = ref(db, "logins");
+
+            onChildAdded(loginsRef, (snapshot) => {
+                console.log("New login detected:", snapshot.val());
+                const loginData = snapshot.val();
+                const loginId = loginData.id.toString();
+                updateAttendance(loginId);
+            });
+
+            onChildChanged(loginsRef, (snapshot) => {
+                console.log("Login status changed:", snapshot.val());
+                const loginData = snapshot.val();
+                const loginId = loginData.id.toString();
+                updateAttendance(loginId);
+            });
+        }
+
+        async function updateAttendance(studentId) {
+            console.log(`Updating attendance for ${studentId}...`);
+
+            const attendanceRef = ref(db, `attendance/${classId}/${studentId}`);
+            const snapshot = await get(attendanceRef);
+
+            if (snapshot.exists()) {
+                const attendanceData = snapshot.val();
+                const currentStatus = attendanceData.status;
+
+                if (currentStatus === "Present" || currentStatus === "Late" || currentStatus === "Absent") {
+                    console.log(`Skipping update for ${studentId}, already marked as ${currentStatus}.`);
+                    return;
+                }
+
+                const currentTime = new Date();
+                const classRef = ref(db, `classes/${teacherId}/${classId}`);
+                const classSnapshot = await get(classRef);
+
+                if (classSnapshot.exists()) {
+                    const classData = classSnapshot.val();
+                    const startTime = classData.startTime;
+
+                    const today = new Date().toDateString();
+                    const classStartDateTime = new Date(`${today} ${startTime}:00`);
+
+                    let status = currentTime <= classStartDateTime ? "Present" : "Late";
+
+                    console.log(`Marking ${studentId} as ${status}`);
+
+                    update(attendanceRef, { status })
+                        .then(() => console.log(`Attendance updated for ${studentId}: ${status}`))
+                        .catch((error) => console.error("Error updating attendance:", error));
+                } else {
+                    console.error("Class data not found. Cannot determine class start time.");
+                }
+            } else {
+                console.warn(`No attendance record found for ${studentId}, skipping update.`);
+            }
+        }
+
+        async function resetAttendance() {
+            console.log("Resetting attendance for all students...");
+
+            const attendanceRef = ref(db, `attendance/${classId}`);
+            const snapshot = await get(attendanceRef);
+
+            if (snapshot.exists()) {
+                const attendanceData = snapshot.val();
+                for (const studentId in attendanceData) {
+                    set(ref(db, `attendance/${classId}/${studentId}`), {
+                        id: studentId,
+                        status: "-",
+                        timestamp: new Date().toISOString()
+                    });
+
+                    const statusCell = document.querySelector(`#status-${studentId}`);
+                    if (statusCell) {
+                        statusCell.innerText = "-";
+                    }
+
+                    const timestampCell = statusCell?.nextElementSibling;
+                    if (timestampCell) {
+                        timestampCell.innerText = "-";
+                    }
+                }
+            }
+        }
+
+        function resetLogins() {
+            const loginsRef = ref(db, "logins");
+            remove(loginsRef)
+                .then(() => {
+                    console.log("Logins reset successfully!");
+                    resetAttendance();
+                })
+                .catch((error) => {
+                    console.error("Error resetting logins: ", error);
+                    alert("Failed to reset logins.");
+                });
+        }
+
+        document.getElementById("resetButton").addEventListener("click", resetLogins);
+
+        document.getElementById('exportBtn').addEventListener('click', () => {
+            const rows = [['Student ID', 'Name', 'Course', 'Status', 'Timestamp']];
+            const tbody = document.getElementById('studentTable');
+            const tableRows = tbody.querySelectorAll('tr');
+
+            tableRows.forEach(row => {
+                const cells = Array.from(row.getElementsByTagName('td'));
+                if (cells.length === 0) return;
+
+                const rowData = cells.map((cell, index) => {
+                    let text = cell.textContent.trim().replace(/"/g, '""');
+
+                    if (index === 0 || index === 4) {
+                        return `"\t${text}"`;
+                    }
+
+                    return `"${text}"`;
+                });
+
+                rows.push(rowData);
+            });
+
+            const csvContent = rows.map(row => row.join(',')).join('\n');
+            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'attendance_list.csv';
+            link.click();
+        });
+
+        window.grantAccess = async function () {
+            const studentId = document.getElementById("studentSelect").value;
+            const message = document.getElementById("message");
+
+            if (!studentId) {
+                message.innerHTML = "No student selected.";
+                message.style.color = "red";
+                return;
+            }
+
+            try {
+                const classRef = ref(db, classPath);
+                const snapshot = await get(classRef);
+
+                if (!snapshot.exists()) {
+                    message.innerHTML = "Error: No students found!";
+                    message.style.color = "red";
+                    return;
+                }
+
+                const students = snapshot.val();
+                let studentKey = null;
+
+                for (const key in students) {
+                    if (students[key].id === studentId) {
+                        studentKey = key;
+                        break;
+                    }
+                }
+
+                if (!studentKey) {
+                    message.innerHTML = "Error: Student not found!";
+                    message.style.color = "red";
+                    return;
+                }
+
+                const studentRef = ref(db, `${classPath}/${studentKey}`);
+                await update(studentRef, { canAccessAttendance: true });
+
+                students[studentKey].canAccessAttendance = true;
+                studentsData = Object.values(students);
+                renderSecretaryUI(studentsData);
+
+                message.innerHTML = `Access granted to student: <strong>${students[studentKey].name} (${studentId})</strong>`;
+                message.style.color = "green";
+            } catch (error) {
+                message.innerHTML = "Error: " + error.message;
+                message.style.color = "red";
+                console.error("Error updating access:", error);
+            }
+        };
+
+        window.revokeAccess = async function () {
+            const studentId = document.getElementById("studentSelect").value;
+            const message = document.getElementById("message");
+
+            if (!studentId) {
+                message.innerHTML = "No student selected.";
+                message.style.color = "red";
+                return;
+            }
+
+            try {
+                const classRef = ref(db, classPath);
+                const snapshot = await get(classRef);
+
+                if (!snapshot.exists()) {
+                    message.innerHTML = "Error: No students found!";
+                    message.style.color = "red";
+                    return;
+                }
+
+                const students = snapshot.val();
+                let studentKey = null;
+
+                for (const key in students) {
+                    if (students[key].id === studentId) {
+                        studentKey = key;
+                        break;
+                    }
+                }
+
+                if (!studentKey) {
+                    message.innerHTML = "Error: Student not found!";
+                    message.style.color = "red";
+                    return;
+                }
+
+                if (!students[studentKey].canAccessAttendance) {
+                    message.innerHTML = `${students[studentKey].name} is not currently a secretary.`;
+                    message.style.color = "orange";
+                    return;
+                }
+
+                const studentRef = ref(db, `${classPath}/${studentKey}`);
+                await update(studentRef, { canAccessAttendance: false });
+
+                students[studentKey].canAccessAttendance = false;
+                studentsData = Object.values(students);
+                renderSecretaryUI(studentsData);
+
+                message.innerHTML = `Access revoked from student: <strong>${students[studentKey].name} (${studentId})</strong>`;
+                message.style.color = "green";
+            } catch (error) {
+                message.innerHTML = "Error: " + error.message;
+                message.style.color = "red";
+                console.error("Error revoking access:", error);
+            }
+        };
+
+        setTimeout(markAbsentAfterEndTime);
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
+    <script>
+        function generateQRCode() {
+            var baseUrl = "https://ict312ai.github.io/student-login/index.html";
+            var randomQuery = Math.random().toString(36).substring(2, 15);
+            var finalUrl = baseUrl + "?id=" + randomQuery;
+
+            document.getElementById("qrcode").innerHTML = "";
+
+            new QRCode(document.getElementById("qrcode"), {
+                text: finalUrl,
+                width: 200,
+                height: 200,
+                colorDark: "#A40000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+
+        generateQRCode();
+    </script>
+</body>
+
+</html>
